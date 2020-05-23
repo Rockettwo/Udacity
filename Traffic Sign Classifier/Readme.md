@@ -1,0 +1,1 @@
+Pickle files can be found in: https://s3-us-west-1.amazonaws.com/udacity-selfdrivingcar/traffic-signs-data.zip
