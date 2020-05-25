@@ -62,7 +62,7 @@ void ParticleFilter::prediction(double delta_t, double std_pos[],
    *  http://www.cplusplus.com/reference/random/default_random_engine/
    */
 	
-	std::cout << "Got to the prediction" << std::endl;
+	//std::cout << "Got to the prediction" << std::endl;
 	
 	normal_distribution<double> dist_x(0, std_pos[0]);
 	normal_distribution<double> dist_y(0, std_pos[1]);
@@ -71,10 +71,20 @@ void ParticleFilter::prediction(double delta_t, double std_pos[],
 	float ydt = yaw_rate * delta_t;		
 	float v_ya = velocity / yaw_rate;
 	
-	for (Particle& p : particles) {		
-		p.x = p.x + v_ya * (sin(p.theta+ydt) - sin(p.theta)) + dist_x(gen); 
-		p.y = p.y + v_ya * (cos(p.theta) - cos(p.theta+ydt)) + dist_y(gen);
-		p.theta = p.theta + ydt + dist_t(gen);
+	for (Particle& p : particles) {
+		
+		if (fabs(yaw_rate) < 0.0000001) {
+			p.x += velocity * delta_t * cos(p.theta) + dist_x(gen);
+			p.y += velocity * delta_t * sin(p.theta) + dist_y(gen);
+			//p.x += v_ya * (sin(p.theta+ydt) - sin(p.theta)) + dist_x(gen); 
+			//p.y += v_ya * (cos(p.theta) - cos(p.theta+ydt)) + dist_y(gen);
+			//p.theta += ydt + dist_t(gen);			
+			std::cout << "small yaw rate" << std::endl;
+		} else {
+			p.x += v_ya * (sin(p.theta+ydt) - sin(p.theta)) + dist_x(gen); 
+			p.y += v_ya * (cos(p.theta) - cos(p.theta+ydt)) + dist_y(gen);
+			p.theta += ydt + dist_t(gen);
+		}
 	}
 
 }
@@ -98,7 +108,7 @@ double ParticleFilter::dataAssociationAndWeight(Particle& p, double std_landmark
 	for (LandmarkObs& ol : observations) {
 		int min_id = -1;
 		double min_dist = 100000;
-		double map_x = 0.0; 
+		double map_x = 0.0;
 		double map_y = 0.0;
 		for (LandmarkObs& gl : landmarks_fromMap) {
 			double d = dist(gl.x,gl.y,ol.x,ol.y);
@@ -110,12 +120,7 @@ double ParticleFilter::dataAssociationAndWeight(Particle& p, double std_landmark
 			}
 		}
 		if (min_id != -1) {
-			double p_ = multiv_prob(std_landmark[0], std_landmark[1], ol.x, ol.y, map_x, map_y);
-			if ((w * p_) < std::numeric_limits<double>::epsilon())
-				continue;
-			w *= p_;			
-			//std::cout << "x,y: " << ol.x << "," << ol.y << "__x,y__" << map_x << "," << map_y << std::endl;	
-			//std::cout << "dist: " << dist(ol.x, ol.y, map_x, map_y) << std::endl;
+			w *= multiv_prob(std_landmark[0], std_landmark[1], ol.x, ol.y, map_x, map_y);	
 			
 			associations.push_back(min_id);
 			sense_x.push_back(ol.x);
@@ -124,9 +129,9 @@ double ParticleFilter::dataAssociationAndWeight(Particle& p, double std_landmark
 	}
 
 	SetAssociations(p,associations,sense_x,sense_y);
-	std::cout << observations.size() << std::endl;
-	std::cout << landmarks_fromMap.size() << std::endl;
-	//std::cout << "--------------" << std::endl;
+	//std::cout << observations.size() << std::endl;
+	//std::cout << landmarks_fromMap.size() << std::endl;
+
 	
 	// will return 0 if list is empty
 	if (associations.size() == 0)
@@ -154,9 +159,9 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 	 
 	 double sum_of_weights = 0.0;
 	 
-		std::cout << "psize: " << particles.size() << std::endl;
-		std::cout << "wsize: " << particles.size() << std::endl;
-		std::cout << "osize: " << observations.size() << std::endl;
+		//std::cout << "psize: " << particles.size() << std::endl;
+		//std::cout << "wsize: " << particles.size() << std::endl;
+		//std::cout << "osize: " << observations.size() << std::endl;
 		
 		vector<double> w_temp;
 		
@@ -193,17 +198,17 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 		sum_of_weights += tmp;
 	}
 	
-	if (sum_of_weights < std::numeric_limits<double>::epsilon())
+	if (sum_of_weights < std::numeric_limits<double>::epsilon()) {
+		std::cout << "sum_of_weights out of bounds" << std::endl;
 		return;
+	}
 	
 	// normalze weights	
 	for (int i = 0; i < particles.size(); ++i){
 		weights[i] = w_temp[i];	
-    weights[i] /= sum_of_weights;
+		weights[i] /= sum_of_weights;
 		particles[i].weight = weights[i];
 	}
-	
-	std::cout << sum_of_weights;
 
 }
 
