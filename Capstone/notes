@@ -1,0 +1,2 @@
+maybe rospkg has to be installed via:
+pip install rospkg
